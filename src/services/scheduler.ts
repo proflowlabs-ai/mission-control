@@ -59,7 +59,9 @@ export class SchedulerService {
         });
 
         if (task) {
-          await this.taskExecutor.executeTask(task.id, "echo scheduler-run", task.project.rootPath);
+          const prompt = `Run scheduled task: ${task.title}\n\n${task.description ?? ""}\n\nExpected deliverables: ${task.expectedDeliverables ?? "n/a"}`;
+          const command = `openclaw agent --agent ${task.assignedAgentId ?? task.project.primaryAgentId ?? "cody"} --message ${JSON.stringify(prompt)} --json`;
+          await this.taskExecutor.executeTask(task.id, command, task.project.rootPath);
         }
       }
 
