@@ -1,0 +1,232 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// === CORE DOMAIN MODELS ===
+
+model Project {
+  id            String   @id @default(cuid())
+  name          String
+  description   String?
+  rootPath      String   @unique // Validated path to project directory
+  outputPath    String   // Where artifacts go
+  primaryAgentId String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  tasks         Task[]
+  agents        ProjectAgent[]
+  jobs          CronJob[]
+  chatThreads   ChatThread[]
+  taskRuns      TaskRun[]
+  artifacts     Artifact[]
+
+  @@index([createdAt])
+}
+
+model Task {
+  id            String   @id @default(cuid())
+  projectId     String
+  title         String
+  description   String?
+  type          TaskType @default(BUILD) // PLAN, BUILD, OPS
+  status        TaskStatus @default(BACKLOG) // BACKLOG, PLANNED, IN_PROGRESS, BLOCKED, DONE
+  priority      Int      @default(0) // 0=low, 1=medium, 2=high
+  assignedAgentId String?
+  expectedDeliverables String? // JSON array or text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  runs          TaskRun[]
+  artifacts     Artifact[]
+
+  @@index([projectId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum TaskType {
+  PLAN
+  BUILD
+  OPS
+}
+
+enum TaskStatus {
+  BACKLOG
+  PLANNED
+  IN_PROGRESS
+  BLOCKED
+  DONE
+}
+
+model Agent {
+  id            String   @id // from openclaw config (e.g. "cody")
+  name          String
+  model         String   // LLM model identifier (e.g. "claude-haiku")
+  capabilities  String   // JSON array of capabilities
+  description   String?
+  discoveredAt  DateTime @default(now())
+
+  // Relations
+  projects      ProjectAgent[]
+  runs          TaskRun[]
+
+  @@index([discoveredAt])
+}
+
+model ProjectAgent {
+  id        String   @id @default(cuid())
+  projectId String
+  agentId   String
+  assignedAt DateTime @default(now())
+
+  // Relations
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  agent     Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, agentId])
+  @@index([projectId])
+  @@index([agentId])
+}
+
+model TaskRun {
+  id            String   @id @default(cuid())
+  taskId        String
+  projectId     String
+  agentId       String?
+  status        RunStatus @default(RUNNING) // RUNNING, COMPLETED, FAILED, CANCELLED
+  startTime     DateTime  @default(now())
+  endTime       DateTime?
+  exitCode      Int?
+  logs          String    @default("") // Full execution logs
+  createdAt     DateTime  @default(now())
+
+  // Relations
+  task          Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  agent         Agent?    @relation(fields: [agentId], references: [id])
+  artifacts     Artifact[]
+
+  @@index([taskId])
+  @@index([projectId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum RunStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model Artifact {
+  id        String   @id @default(cuid())
+  taskId    String?
+  runId     String?
+  projectId String
+  filePath  String   // Relative path from project.outputPath
+  fileSize  BigInt?  // Bytes
+  mimeType  String?  // e.g. "text/plain"
+  createdAt DateTime @default(now())
+
+  // Relations
+  task      Task?     @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  run       TaskRun?  @relation(fields: [runId], references: [id], onDelete: SetNull)
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([taskId])
+  @@index([runId])
+  @@index([createdAt])
+}
+
+model CronJob {
+  id              String   @id @default(cuid())
+  projectId       String
+  name            String
+  description     String?
+  jobType         JobType  @default(RUN_TASK) // RUN_TASK, RUN_REPORT, etc.
+  cronExpression  String   // e.g. "0 9 * * MON"
+  timezone        String   @default("UTC")
+  enabled         Boolean  @default(true)
+  targetTaskId    String?  // If jobType=RUN_TASK
+  nextRunAt       DateTime?
+  lastRunAt       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  runs            SchedulerJobRun[]
+
+  @@index([projectId])
+  @@index([enabled])
+  @@index([nextRunAt])
+  @@index([createdAt])
+}
+
+enum JobType {
+  RUN_TASK
+  RUN_REPORT
+  MAINTENANCE
+}
+
+model SchedulerJobRun {
+  id        String   @id @default(cuid())
+  jobId     String
+  status    RunStatus @default(RUNNING) // RUNNING, COMPLETED, FAILED
+  startTime DateTime  @default(now())
+  endTime   DateTime?
+  exitCode  Int?
+  logs      String    @default("")
+  createdAt DateTime  @default(now())
+
+  // Relations
+  job       CronJob   @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ChatThread {
+  id        String   @id @default(cuid())
+  projectId String
+  title     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  messages  ChatMessage[]
+
+  @@index([projectId])
+  @@index([createdAt])
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  threadId  String
+  role      String   @default("User") // "User" or "Agent"
+  agentId   String?  // Which agent responded (if role="Agent")
+  content   String
+  createdAt DateTime @default(now())
+
+  // Relations
+  thread    ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId])
+  @@index([createdAt])
+}
