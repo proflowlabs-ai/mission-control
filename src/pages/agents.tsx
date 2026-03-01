@@ -5,7 +5,7 @@ export default function AgentsPage() {
   const [agents, setAgents] = useState<Array<{ id: string; name: string; model: string; capabilities: string[] }>>([]);
 
   useEffect(() => {
-    void fetch("http://127.0.0.1:4000/api/agents").then((r) => r.json()).then((d) => setAgents(d.agents ?? []));
+    void fetch("/api/agents").then((r) => r.json()).then((d) => setAgents(d.agents ?? []));
   }, []);
 
   return (

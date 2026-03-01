@@ -17,8 +17,10 @@ export default function TasksPage() {
 
   useEffect(() => {
     if (!projectId) return;
-    void fetch(`http://127.0.0.1:4000/api/tasks?projectId=${projectId}`).then((r) => r.json()).then((d) => setTasks(d.tasks ?? []));
-    const ws = new WebSocket("ws://127.0.0.1:4000/ws");
+    void fetch(`/api/tasks?projectId=${projectId}`).then((r) => r.json()).then((d) => setTasks(d.tasks ?? []));
+    const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${wsProtocol}//${window.location.hostname}:4000/ws`;
+    const ws = new WebSocket(wsUrl);
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data) as { type: string; payload: { runId?: string; data?: string } };
       if ((data.type === "task.stdout" || data.type === "task.stderr") && data.payload.runId) {
@@ -36,7 +38,7 @@ export default function TasksPage() {
   }, [tasks]);
 
   const runTask = async (taskId: string) => {
-    const run = await fetch(`http://127.0.0.1:4000/api/tasks/${taskId}/run`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ command: "echo hello-from-task" }) }).then((r) => r.json());
+    const run = await fetch(`/api/tasks/${taskId}/run`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ command: "echo hello-from-task" }) }).then((r) => r.json());
     appendLog(run.runId, "Task started");
   };
 

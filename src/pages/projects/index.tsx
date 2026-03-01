@@ -7,7 +7,7 @@ export default function ProjectsPage() {
   const [projects, setProjects] = useState<Array<{ id: string; name: string; description?: string }>>([]);
 
   useEffect(() => {
-    void fetch("http://127.0.0.1:4000/api/projects")
+    void fetch("/api/projects")
       .then((r) => r.json())
       .then((data) => setProjects(data.projects ?? []));
   }, []);

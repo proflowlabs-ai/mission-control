@@ -7,9 +7,9 @@ export default function DashboardPage() {
 
   useEffect(() => {
     void Promise.all([
-      fetch("http://127.0.0.1:4000/api/tasks").then((r) => r.json()),
-      fetch("http://127.0.0.1:4000/api/scheduler").then((r) => r.json()),
-      fetch("http://127.0.0.1:4000/health").then((r) => r.json()),
+      fetch("/api/tasks").then((r) => r.json()),
+      fetch("/api/scheduler").then((r) => r.json()),
+      fetch("/health").then((r) => r.json()),
     ]).then(([tasks, jobs, healthRes]) => {
       const activeTasks = (tasks.tasks ?? []).filter((t: { status: string }) => t.status === "IN_PROGRESS").length;
       const runs = (jobs.jobs ?? []).reduce((sum: number, j: { runs?: unknown[] }) => sum + (j.runs?.length ?? 0), 0);

@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch";
 export default function SchedulerPage() {
   const [jobs, setJobs] = useState<Array<{ id: string; name: string; enabled: boolean; nextRunAt?: string; runs?: { id: string; status: string }[] }>>([]);
 
-  const load = () => void fetch("http://127.0.0.1:4000/api/scheduler").then((r) => r.json()).then((d) => setJobs(d.jobs ?? []));
+  const load = () => void fetch("/api/scheduler").then((r) => r.json()).then((d) => setJobs(d.jobs ?? []));
   useEffect(load, []);
 
   return (
@@ -19,9 +19,9 @@ export default function SchedulerPage() {
             <div>Next run: {job.nextRunAt ?? "n/a"}</div>
             <div className="flex items-center gap-2">
               <Switch checked={job.enabled} onCheckedChange={(checked) => {
-                void fetch(`http://127.0.0.1:4000/api/scheduler/${job.id}/${checked ? "enable" : "disable"}`, { method: "PUT" }).then(load);
+                void fetch(`/api/scheduler/${job.id}/${checked ? "enable" : "disable"}`, { method: "PUT" }).then(load);
               }} />
-              <Button variant="outline" onClick={() => void fetch(`http://127.0.0.1:4000/api/scheduler/${job.id}/run-now`, { method: "POST" })}>Run now</Button>
+              <Button variant="outline" onClick={() => void fetch(`/api/scheduler/${job.id}/run-now`, { method: "POST" })}>Run now</Button>
             </div>
             <div className="text-xs">Run history: {job.runs?.map((run) => `${run.id}:${run.status}`).join(" | ") || "none"}</div>
           </CardContent>

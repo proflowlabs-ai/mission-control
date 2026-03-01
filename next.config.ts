@@ -12,14 +12,16 @@ const nextConfig: NextConfig = {
   /* config options here */
   reactCompiler: true,
   
-  // Proxy /api/py to the FastAPI backend
+  // Proxy backend API calls to Mission Control Express server
   async rewrites() {
     return [
       {
-        source: "/api/py/:path*",
-        destination: process.env.NODE_ENV === "development" 
-          ? "http://127.0.0.1:8000/:path*" 
-          : "http://127.0.0.1:8000/:path*", // Update this for production URL if needed
+        source: "/api/:path*",
+        destination: "http://127.0.0.1:4000/api/:path*",
+      },
+      {
+        source: "/health",
+        destination: "http://127.0.0.1:4000/health",
       },
     ];
   },

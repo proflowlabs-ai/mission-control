@@ -12,9 +12,9 @@ export default function ProjectDetailPage() {
 
   useEffect(() => {
     if (!id) return;
-    void fetch(`http://127.0.0.1:4000/api/projects/${id}`).then((r) => r.json()).then((d) => setProject(d.project));
-    void fetch(`http://127.0.0.1:4000/api/tasks?projectId=${id}`).then((r) => r.json()).then((d) => setTasks(d.tasks ?? []));
-    void fetch("http://127.0.0.1:4000/api/agents").then((r) => r.json()).then((d) => setAgents(d.agents ?? []));
+    void fetch(`/api/projects/${id}`).then((r) => r.json()).then((d) => setProject(d.project));
+    void fetch(`/api/tasks?projectId=${id}`).then((r) => r.json()).then((d) => setTasks(d.tasks ?? []));
+    void fetch("/api/agents").then((r) => r.json()).then((d) => setAgents(d.agents ?? []));
   }, [id]);
 
   return (

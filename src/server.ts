@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express, { type NextFunction, type Request, type Response } from "express";
+import cors from "cors";
 import http from "node:http";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 
@@ -28,6 +29,7 @@ const allowedTransitions: Record<string, string[]> = {
 };
 
 app.use(express.json());
+app.use(cors());
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
