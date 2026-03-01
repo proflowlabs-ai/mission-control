@@ -1,0 +1,26 @@
+
+> dienstplanung@0.1.0 build
+> next build
+
+[dotenv@17.2.3] injecting env (0) from ../.env -- tip: ⚙️  override existing env vars with { override: true }
+▲ Next.js 16.1.4 (Turbopack)
+
+  Creating an optimized production build ...
+[dotenv@17.2.3] injecting env (0) from ../.env -- tip: 🔐 prevent committing .env to code: https://dotenvx.com/precommit
+✓ Compiled successfully in 2.3s
+  Running TypeScript ...
+  Collecting page data using 9 workers ...
+  Generating static pages using 9 workers (0/4) ...
+  Generating static pages using 9 workers (1/4) 
+  Generating static pages using 9 workers (2/4) 
+  Generating static pages using 9 workers (3/4) 
+✓ Generating static pages using 9 workers (4/4) in 203.6ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+└ ○ /_not-found
+
+
+○  (Static)  prerendered as static content
+
