@@ -5,37 +5,62 @@ import { useState } from "react";
 
 interface FileNode { path: string; name: string; content?: string }
 
-export default function FilesPage({ files }: { files: FileNode[] }) {
+export default function FilesPage({ files, outputPath }: { files: FileNode[]; outputPath: string }) {
   const [selected, setSelected] = useState<FileNode | null>(files[0] ?? null);
 
   return (
-    <main className="p-6 grid md:grid-cols-[280px_1fr] gap-4">
-      <div className="rounded border p-3 space-y-2">
+    <main className="grid gap-4 md:grid-cols-[320px_1fr]">
+      <div className="rounded border border-slate-800 bg-slate-900/60 p-3 space-y-2">
+        <div className="text-xs text-slate-400">{outputPath}</div>
         {files.map((file) => (
-          <button key={file.path} className="block text-left text-sm underline" onClick={() => setSelected(file)}>{file.name}</button>
+          <button key={file.path} className="block w-full rounded border border-slate-800 p-2 text-left text-sm hover:border-slate-600" onClick={() => setSelected(file)}>
+            {file.name}
+          </button>
         ))}
       </div>
-      <div className="rounded border p-3">
-        <div className="mb-2 text-xs text-muted-foreground">{selected?.path}</div>
-        <button className="mb-2 border rounded px-2 py-1 text-xs" onClick={() => navigator.clipboard.writeText(selected?.path ?? "")}>Copy path</button>
-        <pre className="text-xs overflow-auto max-h-[70vh]">{selected?.content ?? "No preview"}</pre>
+      <div className="rounded border border-slate-800 bg-slate-900/60 p-3">
+        <div className="mb-2 text-xs text-slate-400 break-all">{selected?.path}</div>
+        <button className="mb-3 rounded border border-slate-700 px-2 py-1 text-xs" onClick={() => navigator.clipboard.writeText(selected?.path ?? "")}>Copy path</button>
+        <pre className="max-h-[70vh] overflow-auto text-xs text-slate-200">{selected?.content ?? "No preview"}</pre>
       </div>
     </main>
   );
 }
 
-export const getServerSideProps: GetServerSideProps = async () => {
-  const target = "/tmp/test/out";
-  const files: FileNode[] = [];
+export const getServerSideProps: GetServerSideProps = async (ctx) => {
+  const projectId = ctx.params?.id as string;
+  const projectRes = await fetch(`http://127.0.0.1:4000/api/projects/${projectId}`);
 
-  if (fs.existsSync(target)) {
-    for (const entry of fs.readdirSync(target)) {
-      const full = path.join(target, entry);
-      if (fs.statSync(full).isFile()) {
-        files.push({ path: full, name: entry, content: fs.readFileSync(full, "utf-8") });
-      }
-    }
+  if (!projectRes.ok) {
+    return { props: { files: [], outputPath: "unknown" } };
   }
 
-  return { props: { files } };
+  const { project } = (await projectRes.json()) as { project: { outputPath: string } };
+  const target = project.outputPath;
+  const files: FileNode[] = [];
+
+  const walk = (dir: string) => {
+    for (const entry of fs.readdirSync(dir)) {
+      const full = path.join(dir, entry);
+      const rel = path.relative(target, full);
+      const stat = fs.statSync(full);
+      if (stat.isDirectory()) {
+        walk(full);
+      } else {
+        let content = "";
+        try {
+          content = fs.readFileSync(full, "utf-8").slice(0, 20000);
+        } catch {
+          content = "<binary or unreadable file>";
+        }
+        files.push({ path: full, name: rel, content });
+      }
+    }
+  };
+
+  if (target && fs.existsSync(target) && fs.statSync(target).isDirectory()) {
+    walk(target);
+  }
+
+  return { props: { files, outputPath: target } };
 };
